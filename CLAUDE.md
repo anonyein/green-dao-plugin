@@ -57,9 +57,9 @@ Consumer projects configure the plugin via the `greendao { }` block (defined in 
 - **Eclipse JDT Core 3.20.0** — Java AST parsing and rewriting (repackaged in `greenrobot-jdt` with shadow relocation)
 - **greenDAO API 3.3.0** — entity annotations
 - **greenDAO Generator 3.3.0** — `DaoGenerator` produces DAO/DaoMaster/DaoSession
-- **Kotlin 1.3.41** — all modules written in Kotlin
+- **Kotlin 2.3.21** — all modules written in Kotlin
 - **FreeMarker 2.3.29** — code generation templates
-- **Shadow plugin 5.1.0** — jar repackaging for `greenrobot-jdt`
+- **Shadow plugin 9.0.0-beta8** (GradleUp fork) — jar repackaging for `greenrobot-jdt`
 
 ## CI
 
@@ -69,7 +69,7 @@ Jenkinsfile at `ci/Jenkinsfile`. Pipeline stages: `init` → `build` (`./gradlew
 
 Set `sonatypeUsername`/`sonatypePassword` in global `gradle.properties`, then run:
 ```
-:greendao-code-modifier:uploadArchives
-:greendao-gradle-plugin:uploadArchives
+:greendao-code-modifier:publish
+:greendao-gradle-plugin:publish
 ```
 Then close + release from https://oss.sonatype.org/#stagingRepositories.

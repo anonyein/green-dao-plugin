@@ -1,22 +1,26 @@
 apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.gradleup.shadow'
 
 group = 'org.greenrobot'
 // this artifact only needs to update every time we update the JDT version
 // so version it after the contained JDT release
 version = '3.20.0'
 
-sourceCompatibility = 1.7
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 
 dependencies {
     // "official" packaged version of Eclipse JDT
     // https://objectteams.wordpress.com/2017/01/09/eclipse-neon-2-is-on-maven-central/
     // https://bugs.eclipse.org/bugs/show_bug.cgi?id=484004
-    compile 'org.eclipse.jdt:org.eclipse.jdt.core:3.20.0'
+    implementation 'org.eclipse.jdt:org.eclipse.jdt.core:3.20.0'
 }
 
 // include dependencies from shadow configuration in compile tasks
-tasks.withType(AbstractCompile) {
+tasks.withType(JavaCompile) {
     classpath += configurations.shadow
 }
 
@@ -39,71 +43,12 @@ shadowJar {
     relocate 'org.apache', "${project.group}.apache"
     relocate 'org.osgi', "${project.group}.osgi"
 
-    classifier = null // would default to "all"
+    archiveClassifier = null // would default to "all"
+}
+
+// Make shadow jar the primary component for publishing
+tasks.named('jar') {
+    enabled = false
 }
 
 apply from: rootProject.file("gradle/publish.gradle")
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from 'README'
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from 'README'
-}
-
-artifacts {
-    archives shadowJar
-    archives javadocJar
-    archives sourcesJar
-}
-
-// modify uploadArchives task to reflect how shadow plugin configures its uploadShadow task
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            // Basic definitions are defined in root project
-
-            // use shadow configuration
-            configuration = project.configurations.shadow
-            // only include non-shadowed dependencies
-            pom.scopeMappings.mappings.remove(project.configurations.compile)
-            pom.scopeMappings.mappings.remove(project.configurations.runtime)
-            pom.scopeMappings.addMapping(MavenPlugin.RUNTIME_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.RUNTIME)
-
-            pom.project {
-                name 'greenrobot JDT'
-                description 'Eclipse JDT repackaged for use in greenrobot projects'
-
-                licenses {
-                    license {
-                        name 'Eclipse Public License - v 1.0'
-                        url 'http://www.eclipse.org/legal/epl-v10.html'
-                        distribution 'repo'
-                    }
-                }
-
-                // Currently ignored (info from base is used):
-                developers {
-                    developer {
-                        id 'greenrobot'
-                        name 'greenrobot'
-                    }
-                    developer {
-                        id 'eclipse'
-                        name 'Eclipse JDT Contributors'
-                        url 'https://projects.eclipse.org/projects/eclipse.jdt/who'
-                    }
-                }
-
-                // Currently ignored (info from base is used):
-                issueManagement {
-                    system 'GitHub Issues'
-                    url 'https://github.com/greenrobot/greenDAO/issues'
-                }
-            }
-        }
-    }
-}

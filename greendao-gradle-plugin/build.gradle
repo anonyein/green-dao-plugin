@@ -4,8 +4,11 @@ apply plugin: 'groovy' // for dsl tests
 
 group = 'org.greenrobot'
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 
 def genResourcesDir = new File(buildDir, 'src/generated/resources')
 def versionFile = new File(genResourcesDir, 'org/greenrobot/greendao/gradle/version.properties')
@@ -19,12 +22,12 @@ sourceSets {
 }
 
 dependencies {
-    compile gradleApi()
-    compile project(':greendao-code-modifier')
-    compileOnly 'com.android.tools.build:gradle:3.4.0' // Minimal supported version is 3.0.0.
+    implementation gradleApi()
+    implementation project(':greendao-code-modifier')
+    compileOnly 'com.android.tools.build:gradle:9.2.1'
 
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-all:1.10.19'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-all:1.10.19'
 }
 
 // puts artifact version to properties file inside resources
@@ -42,42 +45,15 @@ version=${project.version}
     }
 }
 
-tasks['compileKotlin'].dependsOn generateVersionProperties
+tasks.named('compileKotlin') { dependsOn generateVersionProperties }
+tasks.named('processResources') { dependsOn generateVersionProperties }
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--add-opens=java.base/sun.reflect.annotation=ALL-UNNAMED'
+}
 
 apply from: rootProject.file("gradle/publish.gradle")
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from 'README'
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from 'README'
-}
-
-artifacts {
-    // jar added by Java plugin.
-    archives javadocJar
-    archives sourcesJar
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            // Basic definitions are defined in root project
-            pom.project {
-                name 'greenDAO Gradle Plugin'
-                description 'Gradle Plugin for greenDAO, the light and fast ORM for Android'
-
-                licenses {
-                    license {
-                        name 'GNU General Public License, Version 3'
-                        url 'http://www.gnu.org/licenses/gpl.txt'
-                        distribution 'repo'
-                    }
-                }
-            }
-        }
-    }
-}

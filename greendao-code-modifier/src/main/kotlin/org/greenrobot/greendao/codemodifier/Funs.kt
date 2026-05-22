@@ -32,7 +32,7 @@ fun parseIndexSpec(spec: String): List<OrderProperty> {
         val specPair = columnSpec.split(' ')
         when {
             specPair.size == 1 -> OrderProperty(specPair[0], Order.ASC)
-            else -> OrderProperty(specPair[0], Order.valueOf(specPair[1].toUpperCase()))
+            else -> OrderProperty(specPair[0], Order.valueOf(specPair[1].uppercase()))
         }
     }
 }
@@ -43,12 +43,12 @@ fun String.nullIfBlank() : String? = if (isBlank()) null else this
 fun <T> Sequence<T>.mostPopular(): T? {
     val counts = mutableMapOf<T, Int>()
     for (t in this) counts.put(t, counts.getOrElse(t, {0}) + 1)
-    return counts.asSequence().maxBy { it.value }?.key
+    return counts.asSequence().maxByOrNull { it.value }?.key
 }
 
 fun File.getJavaClassNames(): List<String> {
     require(this.isDirectory) { "The file should be a directory" }
-    return list().filter { it.endsWith(".java", ignoreCase = true) }
+    return list().filter { it.lowercase(java.util.Locale.ROOT).endsWith(".java") }
         .map { File(this, it) }
         .filter { it.isFile }
         .map { it.nameWithoutExtension }

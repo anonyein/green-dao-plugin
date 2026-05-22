@@ -18,13 +18,9 @@
 
 package org.greenrobot.greendao.gradle
 
-import org.codehaus.groovy.runtime.MethodClosure
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
-
-/** helper to create Groovy's Closure from Kotlin's block */
-fun <P, R> Closure(block: (P) -> R) = MethodClosure(block, "invoke")
 
 object Util {
     /** Search for token ignoring whitespaces */

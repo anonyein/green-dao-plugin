@@ -2,58 +2,31 @@ apply plugin: 'kotlin'
 
 group = 'org.greenrobot'
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    compile 'org.greenrobot:greendao-api:3.3.0'
-    compile 'org.greenrobot:greendao-generator:3.3.0'
-    compile 'org.greenrobot:greenrobot-jdt:3.20.0'
-    compile 'org.greenrobot:essentials:3.0.0-RC1'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation 'org.greenrobot:greendao-api:3.3.0'
+    implementation 'org.greenrobot:greendao-generator:3.3.0'
+    implementation 'org.greenrobot:greenrobot-jdt:3.20.0'
+    implementation 'org.greenrobot:essentials:3.0.0-RC1'
 
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-all:1.10.19'
-    testCompile 'com.natpryce:hamkrest:1.1.0.0'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-all:1.10.19'
+    testImplementation 'com.natpryce:hamkrest:1.1.0.0'
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED',
+            '--add-opens=java.desktop/java.beans=ALL-UNNAMED'
 }
 
 apply from: rootProject.file("gradle/publish.gradle")
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from 'README'
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from 'README'
-}
-
-artifacts {
-    // jar added by Java plugin.
-    archives javadocJar
-    archives sourcesJar
-}
-
-// modify uploadArchives task to reflect how shadow plugin configures its uploadShadow task
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            // Basic definitions are defined in root project
-            pom.project {
-                name 'greenDAO Code Modifier'
-                description 'Code modifier for greenDAO, the light and fast ORM for Android'
-
-                licenses {
-                    license {
-                        name 'GNU General Public License, Version 3'
-                        url 'http://www.gnu.org/licenses/gpl.txt'
-                        distribution 'repo'
-                    }
-                }
-
-            }
-        }
-    }
-}

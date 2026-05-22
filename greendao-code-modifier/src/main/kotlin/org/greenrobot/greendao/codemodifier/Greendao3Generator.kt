@@ -111,7 +111,7 @@ class Greendao3Generator(formattingOptions: FormattingOptions? = null,
         }
 
         val keptClasses = entities.count { it.keepSource }
-        val keptMethods = entities.sumBy { it.constructors.count { it.keep } + it.methods.count { it.keep } }
+        val keptMethods = entities.sumOf { it.constructors.count { it.keep } + it.methods.count { it.keep } }
         if (keptClasses + keptMethods > 0) {
             System.err.println(
                     "Kept source for $keptClasses classes and $keptMethods methods because of @Keep annotation")
@@ -201,11 +201,11 @@ class Greendao3Generator(formattingOptions: FormattingOptions? = null,
         // define missing getters and setters
         // add everything (fields, set before get) in reverse as transformer writes in reverse direction
         parsedEntity.properties.reversed().forEach { field ->
-            transformer.defMethodIfMissing("set${field.variable.name.capitalize()}", field.variable.type.name) {
+            transformer.defMethodIfMissing("set${field.variable.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}", field.variable.type.name) {
                 Templates.entity.fieldSet(field.variable)
             }
 
-            transformer.defMethodIfMissing("get${field.variable.name.capitalize()}") {
+            transformer.defMethodIfMissing("get${field.variable.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}") {
                 Templates.entity.fieldGet(field.variable)
             }
         }
@@ -217,7 +217,7 @@ class Greendao3Generator(formattingOptions: FormattingOptions? = null,
             transformer.ensureImport("${toOne.targetEntity.javaPackageDao}.${toOne.targetEntity.classNameDao}")
 
             // define methods
-            transformer.defMethod("set${toOne.name.capitalize()}", toOne.targetEntity.className) {
+            transformer.defMethod("set${toOne.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}", toOne.targetEntity.className) {
                 if (parsedEntity.notNullAnnotation == null && toOne.fkProperties[0].isNotNull) {
                     transformer.ensureImport("org.greenrobot.greendao.annotation.NotNull")
                 }
@@ -225,12 +225,12 @@ class Greendao3Generator(formattingOptions: FormattingOptions? = null,
             }
 
             if (!toOne.isUseFkProperty) {
-                transformer.defMethod("peak${toOne.name.capitalize()}") {
+                transformer.defMethod("peak${toOne.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}") {
                     Templates.entity.oneRelationPeek(toOne)
                 }
             }
 
-            transformer.defMethod("get${toOne.name.capitalize()}") {
+            transformer.defMethod("get${toOne.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}") {
                 Templates.entity.oneRelationGetter(toOne, entity)
             }
 
@@ -249,11 +249,11 @@ class Greendao3Generator(formattingOptions: FormattingOptions? = null,
         entity.toManyRelations.reversed().forEach { toMany ->
             transformer.ensureImport("${toMany.targetEntity.javaPackageDao}.${toMany.targetEntity.classNameDao}")
 
-            transformer.defMethod("reset${toMany.name.capitalize()}") {
+            transformer.defMethod("reset${toMany.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}") {
                 Templates.entity.manyRelationReset(toMany)
             }
 
-            transformer.defMethod("get${toMany.name.capitalize()}") {
+            transformer.defMethod("get${toMany.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }}") {
                 Templates.entity.manyRelationGetter(toMany, entity)
             }
         }

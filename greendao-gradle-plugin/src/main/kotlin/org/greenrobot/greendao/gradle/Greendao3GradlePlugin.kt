@@ -18,6 +18,7 @@
 
 package org.greenrobot.greendao.gradle
 
+import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -34,6 +35,7 @@ class Greendao3GradlePlugin : Plugin<Project> {
     val name: String = "greendao"
     val packageName: String = "org/greenrobot/greendao"
 
+    @Suppress("DEPRECATION")
     override fun apply(project: Project) {
         project.logger.debug("$name plugin starting...")
         project.extensions.create(name, GreendaoOptions::class.java, project)
@@ -46,16 +48,16 @@ class Greendao3GradlePlugin : Plugin<Project> {
             val sourceProvider = getSourceProvider(project)
             val encoding = sourceProvider.encoding ?: "UTF-8"
 
-            val taskArgs = mapOf("type" to DetectEntityCandidatesTask::class.java)
-            val prepareTask = project.task(taskArgs, "${name}Prepare") as DetectEntityCandidatesTask
-            prepareTask.sourceFiles = sourceProvider.sourceTree().matching(Closure { pf: PatternFilterable ->
-                pf.include("**/*.java")
-            })
-            prepareTask.candidatesListFile = candidatesFile
-            prepareTask.version = version
-            prepareTask.charset = encoding
-            prepareTask.group = name
-            prepareTask.description = "Finds entity source files for $name"
+            val prepareTask = project.tasks.register("${name}Prepare", DetectEntityCandidatesTask::class.java) {
+                it.sourceFiles = sourceProvider.sourceTree().matching(Action<PatternFilterable> { pf ->
+                    pf.include("**/*.java")
+                })
+                it.candidatesListFile = candidatesFile
+                it.version = version
+                it.charset = encoding
+                it.group = name
+                it.description = "Finds entity source files for $name"
+            }
 
             val options = project.extensions.getByType(GreendaoOptions::class.java)
             val writeToBuildFolder = options.targetGenDir == null
@@ -71,29 +73,29 @@ class Greendao3GradlePlugin : Plugin<Project> {
 
     private fun createGreendaoTask(project: Project, candidatesFile: File, options: GreendaoOptions,
                                    targetGenDir: File, encoding: String, version: String): Task {
-        val generateTask = project.task(name).apply {
-            logging.captureStandardOutput(LogLevel.INFO)
+        val generateTask = project.tasks.register(name) { task ->
+            task.logging.captureStandardOutput(LogLevel.INFO)
 
-            inputs.file(candidatesFile)
-            inputs.property("plugin-version", version)
-            inputs.property("source-encoding", encoding)
+            task.inputs.file(candidatesFile)
+            task.inputs.property("plugin-version", version)
+            task.inputs.property("source-encoding", encoding)
 
             val schemaOptions = collectSchemaOptions(options.daoPackage, targetGenDir, options)
 
             schemaOptions.forEach { e ->
-                inputs.property("schema-${e.key}", e.value.toString())
+                task.inputs.property("schema-${e.key}", e.value.toString())
             }
 
-            val outputFileTree = project.fileTree(targetGenDir, Closure { pf: PatternFilterable ->
+            val outputFileTree = project.fileTree(targetGenDir, Action<PatternFilterable> { pf ->
                 pf.include("**/*Dao.java", "**/DaoSession.java", "**/DaoMaster.java")
             })
-            outputs.files(outputFileTree)
+            task.outputs.files(outputFileTree)
 
             if (options.generateTests) {
-                outputs.dir(options.targetGenDirTests)
+                task.outputs.dir(options.targetGenDirTests)
             }
 
-            doLast {
+            task.doLast {
                 require(candidatesFile.exists()) {
                     "Candidates file does not exist. Can't continue"
                 }
@@ -108,9 +110,11 @@ class Greendao3GradlePlugin : Plugin<Project> {
                 ).run(candidatesFiles, schemaOptions)
             }
         }
-        generateTask.group = name
-        generateTask.description = "Generates source files for $name"
-        return generateTask
+        generateTask.configure {
+            it.group = name
+            it.description = "Generates source files for $name"
+        }
+        return generateTask.get()
     }
 
     private fun getVersion(): String {

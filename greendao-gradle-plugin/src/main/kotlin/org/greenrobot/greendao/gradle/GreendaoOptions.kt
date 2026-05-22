@@ -201,7 +201,7 @@ class FormattingExtension {
             val key = spec.entries.first().key
             val size = spec[key] as Int
             require(size > 0) { "greendao formatting: tabulation size should be greater than 0"}
-            data.tabulation = when(key.toLowerCase()) {
+            data.tabulation = when(key.lowercase()) {
                 "tab" -> Tabulation('\t', size)
                 "space" -> Tabulation(' ', size)
                 else -> throw IllegalArgumentException("greendao formatting: Unsupported tab char. Use 'space' or 'tab'")

@@ -1,5 +1,20 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
+        maven { url 'https://maven.aliyun.com/repository/central' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        maven { url 'https://maven.aliyun.com/repository/apache-snapshots' }
+        gradlePluginPortal()
+        google()
+        maven { url "https://jitpack.io" }
+        mavenCentral()
+    }
+}
+
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         mavenLocal()
         maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
@@ -10,9 +25,18 @@ dependencyResolutionManagement {
         google()
         maven { url "https://jitpack.io" }
         mavenCentral()
+        def internalRepoUrl = providers.gradleProperty("internalObjectBoxRepo").orNull
+        if (internalRepoUrl != null && !internalRepoUrl.isEmpty()) {
+            maven {
+                url = uri(internalRepoUrl)
+                credentials {
+                    username = providers.gradleProperty("internalObjectBoxRepoUser").orNull ?: ""
+                    password = providers.gradleProperty("internalObjectBoxRepoPassword").orNull ?: ""
+                }
+            }
+        }
     }
 }
 include 'greendao-code-modifier'
 include 'greendao-gradle-plugin'
 include 'greenrobot-jdt'
-
