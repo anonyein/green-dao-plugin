@@ -23,10 +23,31 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v3
 
-      # 修复 Gradle 9.x 的隐式依赖问题
-      - name: Fix implicit dependency for sourcesJar
+      # 打印文件列表，确定 build 文件类型
+      - name: List build files
         run: |
-          echo 'tasks.named("sourcesJar") { dependsOn("generateVersionProperties") }' >> greendao-gradle-plugin/build.gradle.kts
+          echo "==> Root build files:"
+          ls build.gradle* 2>/dev/null || true
+          echo "==> Plugin module build files:"
+          ls greendao-gradle-plugin/build.gradle* 2>/dev/null || true
+
+      # 智能修复隐式依赖
+      - name: Fix sourcesJar dependency
+        run: |
+          MODULE_FILE=""
+          if [ -f "greendao-gradle-plugin/build.gradle.kts" ]; then
+            MODULE_FILE="greendao-gradle-plugin/build.gradle.kts"
+            echo 'tasks.named("sourcesJar") { dependsOn("generateVersionProperties") }' >> "$MODULE_FILE"
+          elif [ -f "greendao-gradle-plugin/build.gradle" ]; then
+            MODULE_FILE="greendao-gradle-plugin/build.gradle"
+            echo "tasks.named('sourcesJar') { dependsOn 'generateVersionProperties' }" >> "$MODULE_FILE"
+          else
+            echo "Error: build file not found in greendao-gradle-plugin!"
+            exit 1
+          fi
+          echo "Added dependency to $MODULE_FILE"
+          echo "--- Contents of $MODULE_FILE ---"
+          cat "$MODULE_FILE"
 
       - name: Build
         run: ./gradlew build
