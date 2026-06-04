@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [ 17, 21 ]          # 必须 ≥17，否则 Gradle 9.x 无法启动
+        java: [ 17, 21 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +22,11 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v3
+
+      # 修复 Gradle 9.x 的隐式依赖问题
+      - name: Fix implicit dependency for sourcesJar
+        run: |
+          echo 'tasks.named("sourcesJar") { dependsOn("generateVersionProperties") }' >> greendao-gradle-plugin/build.gradle.kts
 
       - name: Build
         run: ./gradlew build
