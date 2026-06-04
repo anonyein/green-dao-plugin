@@ -52,9 +52,9 @@ jobs:
       - name: Build
         run: ./gradlew build
 
-      - name: Upload Plugin Jar
+      - name: Upload Plugin Jars
         uses: actions/upload-artifact@v4
         with:
           name: green-dao-plugin-java${{ matrix.java }}
-          path: build/libs/*.jar
+          path: '**/build/libs/*.jar'
           retention-days: 7
