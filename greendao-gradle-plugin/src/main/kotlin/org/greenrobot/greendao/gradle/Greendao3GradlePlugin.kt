@@ -42,13 +42,11 @@ class Greendao3GradlePlugin : Plugin<Project> {
         project.logger.debug("$name plugin starting...")
         project.extensions.create(name, GreendaoOptions::class.java, project)
 
-        // 区分项目类型
         if (isAndroidProject(project)) {
             configureAndroid(project)
         } else if (project.plugins.hasPlugin("java")) {
             configureJava(project)
         } else {
-            // 插件可能尚未应用，等待它们
             project.plugins.withId("com.android.application") { configureAndroid(project) }
             project.plugins.withId("com.android.library") { configureAndroid(project) }
             project.plugins.withId("java") { configureJava(project) }
@@ -62,18 +60,17 @@ class Greendao3GradlePlugin : Plugin<Project> {
     private fun configureAndroid(project: Project) {
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
 
-        // 在 afterEvaluate 中读取用户配置、创建任务（原逻辑）
-        var greendaoTask: Task? = null
         var targetGenDir: File? = null
         var writeToBuildFolder = false
+        // 用于标记任务是否已创建
+        var taskCreated = false
 
         project.afterEvaluate {
             val version = getVersion()
             project.logger.debug("$name plugin $version preparing tasks...")
             val candidatesFile = project.file("build/cache/$name-candidates.list")
 
-            // 完全还原原始 AndroidPluginSourceProvider.sourceTree() 的行为：
-            // 获取所有 Android source set 的 java 源目录
+            // 完全还原原 AndroidPluginSourceProvider.sourceTree() 的行为：所有 source set 的 java 源目录
             val androidExt = project.extensions.getByType(BaseExtension::class.java)
             val allJavaDirs = androidExt.sourceSets.flatMap { it.java.srcDirs }
             val sourceTree = project.files(allJavaDirs).asFileTree
@@ -92,47 +89,41 @@ class Greendao3GradlePlugin : Plugin<Project> {
                 it.description = "Finds entity source files for $name"
             }
 
-            greendaoTask = createGreendaoTask(project, candidatesFile, options, targetGenDir!!, encoding, version)
-            greendaoTask!!.dependsOn(prepareTask)
+            val greendaoTask = createGreendaoTask(project, candidatesFile, options, targetGenDir!!, encoding, version)
+            greendaoTask.dependsOn(prepareTask)
+            taskCreated = true
         }
 
-        // 在 onVariants 中执行原 AndroidPluginSourceProvider.addGeneratorTask 的逻辑
         androidComponents.onVariants { variant ->
-            val task = greendaoTask ?: return@onVariants
-            val genDir = targetGenDir ?: return@onVariants
-            bindTaskToVariant(project, variant, task, genDir, writeToBuildFolder)
+            if (!taskCreated || targetGenDir == null) return@onVariants
+            bindTaskToVariant(project, variant, targetGenDir!!, writeToBuildFolder)
         }
     }
 
     /**
-     * 完全等价于原 AndroidPluginSourceProvider.addGeneratorTask 的行为：
-     * - 如果 writeToBuildFolder 为 true，将生成的目录注册为 variant 的 Java 生成源码目录
-     * - 如果 writeToBuildFolder 为 false（用户指定了外部目录），不注册为生成目录，但依然绑定编译依赖
-     * - 保证 variant 的 Java 编译任务依赖 greenDAO 生成任务
+     * 完全等价于原 AndroidPluginSourceProvider.addGeneratorTask 的行为
      */
     private fun bindTaskToVariant(
         project: Project,
         variant: Variant,
-        task: Task,
         targetGenDir: File,
         writeToBuildFolder: Boolean
     ) {
+        // 获取 TaskProvider，因为 addGeneratedSourceDirectory 需要它
+        val taskProvider = project.tasks.named(name) // "greendao"
+
         if (writeToBuildFolder) {
-            // 对应原插件中的 registerJavaGeneratingTask 或类似逻辑
             variant.sources.java?.addGeneratedSourceDirectory(
-                task,
+                taskProvider,
                 { targetGenDir }
             )
         } else {
-            // 用户指定了外部目录，不注册为生成目录，但需要确保编译时该目录在 classpath 中
-            // 原插件可能是通过 variant.registerJavaGeneratingTask(task, targetGenDir) 实现，
-            // 这里保持相同效果：不声明 generated，但让编译任务依赖 task
+            // 用户指定了外部目录，不注册为生成目录（原插件行为），但编译仍然依赖生成任务
         }
 
-        // 使 variant 的 Java 编译任务依赖 greenDAO 任务（原插件也是如此）
         val compileTaskName = "compile${variant.name.capitalize()}JavaWithJavac"
         project.tasks.named(compileTaskName) { compileTask ->
-            compileTask.dependsOn(task)
+            compileTask.dependsOn(taskProvider)
         }
     }
 
@@ -168,7 +159,7 @@ class Greendao3GradlePlugin : Plugin<Project> {
         }
     }
 
-    // ---------- 以下方法直接从原始代码复制，未改动 ----------
+    // ---------- 以下方法直接来自原始代码，未改动 ----------
     private fun createGreendaoTask(project: Project, candidatesFile: File, options: GreendaoOptions,
                                    targetGenDir: File, encoding: String, version: String): Task {
         val generateTask = project.tasks.register(name) { task ->
@@ -245,3 +236,4 @@ class Greendao3GradlePlugin : Plugin<Project> {
         "com.android.feature"
     )
 }
+
