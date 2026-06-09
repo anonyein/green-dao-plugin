@@ -109,18 +109,21 @@ class Greendao3GradlePlugin : Plugin<Project> {
         targetGenDir: File,
         writeToBuildFolder: Boolean
     ) {
-        // 获取 TaskProvider，因为 addGeneratedSourceDirectory 需要它
         val taskProvider = project.tasks.named(name) // "greendao"
-
+    
         if (writeToBuildFolder) {
             variant.sources.java?.addGeneratedSourceDirectory(
-                taskProvider,
-                { targetGenDir }
-            )
+                taskProvider
+            ) { task ->
+                // 创建一个 DirectoryProperty 指向目标输出目录
+                val dirProp = project.objects.directoryProperty()
+                dirProp.set(targetGenDir)
+                dirProp
+            }
         } else {
-            // 用户指定了外部目录，不注册为生成目录（原插件行为），但编译仍然依赖生成任务
+            // 用户指定了外部目录，不注册为生成目录（原插件行为）
         }
-
+    
         val compileTaskName = "compile${variant.name.capitalize()}JavaWithJavac"
         project.tasks.named(compileTaskName) { compileTask ->
             compileTask.dependsOn(taskProvider)
